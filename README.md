@@ -9,7 +9,7 @@
 - Figure 2.3: [figure_2_3.nb](./figure_2.3.nb)
 
 ### Theorem 2.3 Claim 1
-- Notebook: [theorem_2_3_claim_1.nb](./theorem_2.3_claim_1.nb)
+- Notebook: [theorem_2_3_claim_1.nb](./theorem_2_3_claim_1.nb)
 
 ## Figure 3
 - Notebook: [figure_3.py](./figure_3.py)
