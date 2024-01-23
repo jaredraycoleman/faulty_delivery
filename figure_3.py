@@ -43,7 +43,11 @@ def make_plot(num_points: int,
               curves: List[Tuple[np.ndarray, np.ndarray]] = [],
               points: List[Tuple[float, float]] = [],
               plot_title: Optional[str] = None,
-              draw_legend: bool = False) -> plt.Figure:
+              draw_legend: bool = False,
+              use_hatching: bool = False,
+              include_small_circle: bool = True,
+              include_shaded_region: bool = True,
+              include_contours: bool = True) -> plt.Figure:
     x = np.linspace(plot_range[0], plot_range[1], num_points)
     y = np.linspace(plot_range[2], plot_range[3], num_points)
     X, Y = np.meshgrid(x, y)
@@ -57,13 +61,11 @@ def make_plot(num_points: int,
     # if inside disk centered at (1/2, 0) with radius 1/2
     disk_small = (X - 1/2)**2 + Y**2 <= 1/4
 
-    plt.figure(figsize=(6, 6))
-
-    Z = np.zeros_like(Z0)
-    Z[(Z0 <= Z1) & (Z0 <= Zd)] = 2
-    Z[(Z1 <= Z0) & (Z1 <= Zd) & ~disk_big] = 3
-    Z[(Zd <= Z0) & (Zd <= Z1) & disk_big] = 4
-
+    # Hatching patterns
+    hatching_patterns = ['//', '\\\\', '||', '--']
+    hatch_idx = 0
+    
+    # Colors
     colors = [
         (1, 1, 1, 0),
         (0.5529411764705883, 0.8274509803921568, 0.7803921568627451, 1), # turquoise
@@ -72,36 +74,70 @@ def make_plot(num_points: int,
         (0.5, 0.5, 0.5, 0.5),
     ]
     cmap = mcolors.LinearSegmentedColormap.from_list('custom1', colors, N=len(colors))
+
+    plt.figure(figsize=(6, 6))
+
+    Z = np.zeros_like(Z0)
+    Z[(Z0 <= Z1) & (Z0 <= Zd)] = 2
+    Z[(Z1 <= Z0) & (Z1 <= Zd) & ~disk_big] = 3
+    Z[(Zd <= Z0) & (Zd <= Z1) & disk_big] = 4
+
     levels = list(range(0, len(colors)+1))
 
-    plt.contourf(X, Y, Z, levels=levels, cmap=cmap)
-    # add contour line of color colors[2] but a bit darker
-    plt.contour(
-        X, Y, Z, levels=[2], linewidths=2,
-        colors=[colors[1]],
-        zorder=1,
-    )
+    if use_hatching:
+        plt.contourf(X, Y, Z, levels=levels, hatches=hatching_patterns, colors='none')
+        if include_contours:
+            plt.contour(
+                X, Y, Z, levels=[2], linewidths=2,
+                colors='black',
+                zorder=1,
+            )
+            plt.contour(
+                X, Y, Z, levels=[3], linewidths=2,
+                colors='black',
+                zorder=1,
+            )
+    else:
+        plt.contourf(X, Y, Z, levels=levels, cmap=cmap)
+        if include_contours:
+            plt.contour(
+                X, Y, Z, levels=[2], linewidths=2,
+                colors=[colors[1]],
+                zorder=1,
+            )
 
     # # Add regions tCR1 > 0 and outside of disk_big as transparent gray
-    ZtCR1 = np.vectorize(tCR1)(X, Y)
-    ZtCR1_nonzero = np.zeros_like(Z0)
-    ZtCR1_nonzero[(ZtCR1 > 0) & ~disk_big] = 5
-    plt.contourf(X, Y, ZtCR1_nonzero, levels=levels, cmap=cmap)
-    plt.contour(X, Y, ZtCR1_nonzero, levels=levels, colors=[colors[4]], linewidths=1)
+    if include_shaded_region:
+        ZtCR1 = np.vectorize(tCR1)(X, Y)
+        ZtCR1_nonzero = np.zeros_like(Z0)
+        ZtCR1_nonzero[(ZtCR1 > 0) & ~disk_big] = 5
+        plt.contourf(X, Y, ZtCR1_nonzero, levels=levels, cmap=cmap)
+        plt.contour(X, Y, ZtCR1_nonzero, levels=levels, colors=[colors[4]], linewidths=1)
 
     # add dashed-line circle with center (1/2, 0) and radius 1/2
-    plt.contour(X, Y, disk_small, levels=[0], colors='black', linestyles='dashed', linewidths=1)
+    if include_small_circle:
+        plt.contour(X, Y, disk_small, levels=[0], colors='black', linestyles='dashed', linewidths=1)
 
     # Adding legends and labels
     if draw_legend:
-        legend_labels = [
-            Patch(facecolor=cmap(1), edgecolor=cmap(1), label=r'$Z_{\mathcal{A}_0}$'),
-            Patch(facecolor=cmap(2), edgecolor=cmap(2), label=r'$Z_{\mathcal{A}_1}$'),
-            Patch(facecolor=cmap(3), edgecolor=cmap(3), label=r'$Z_{\mathcal{A}_d}$'),
-            Patch(facecolor=cmap(4), edgecolor=cmap(4), label=r'$t_1 > 0$'),
-            # simple horizontal line legend (not a patch) for curve 1
-            plt.Line2D([0], [0], color='black', linewidth=1, label=r'$y = \pm \frac{\sqrt{1 - 4 x + 2 x^2 + 4 x^3 - 3 x^4}}{2 x}$'),
-        ]
+        if use_hatching:
+            legend_labels = [
+                Patch(facecolor='white', edgecolor='black', hatch=hatching_patterns[1], label=r'$Z_{\mathcal{A}_0}$'),
+                Patch(facecolor='white', edgecolor='black', hatch=hatching_patterns[2], label=r'$Z_{\mathcal{A}_1}$'),
+                Patch(facecolor='white', edgecolor='black', hatch=hatching_patterns[3], label=r'$Z_{\mathcal{A}_d}$'),
+                Patch(facecolor=cmap(4), edgecolor=cmap(4), label=r'$t_1 > 0$'),
+                # simple horizontal line legend (not a patch) for curve 1
+                plt.Line2D([0], [0], color='black', linewidth=1, label=r'$y = \pm \frac{\sqrt{1 - 4 x + 2 x^2 + 4 x^3 - 3 x^4}}{2 x}$'),
+            ]
+        else:
+            legend_labels = [
+                Patch(facecolor=cmap(1), edgecolor=cmap(1), label=r'$Z_{\mathcal{A}_0}$'),
+                Patch(facecolor=cmap(2), edgecolor=cmap(2), label=r'$Z_{\mathcal{A}_1}$'),
+                Patch(facecolor=cmap(3), edgecolor=cmap(3), label=r'$Z_{\mathcal{A}_d}$'),
+                Patch(facecolor=cmap(4), edgecolor=cmap(4), label=r'$t_1 > 0$'),
+                # simple horizontal line legend (not a patch) for curve 1
+                plt.Line2D([0], [0], color='black', linewidth=1, label=r'$y = \pm \frac{\sqrt{1 - 4 x + 2 x^2 + 4 x^3 - 3 x^4}}{2 x}$'),
+            ]
 
         plt.legend(handles=legend_labels)
 
@@ -127,12 +163,12 @@ def make_plot(num_points: int,
     # don't display the grid
     plt.grid(False)
 
-    for box_color, box_range in boxes:
+    for box_color, box_range, linestyle in boxes:
         zoom_x_min, zoom_x_max, zoom_y_min, zoom_y_max = box_range
-        plt.plot([zoom_x_min, zoom_x_max], [zoom_y_min, zoom_y_min], color=box_color, linewidth=1)
-        plt.plot([zoom_x_min, zoom_x_max], [zoom_y_max, zoom_y_max], color=box_color, linewidth=1)
-        plt.plot([zoom_x_min, zoom_x_min], [zoom_y_min, zoom_y_max], color=box_color, linewidth=1)
-        plt.plot([zoom_x_max, zoom_x_max], [zoom_y_min, zoom_y_max], color=box_color, linewidth=1)
+        plt.plot([zoom_x_min, zoom_x_max], [zoom_y_min, zoom_y_min], color=box_color, linewidth=1, linestyle=linestyle)
+        plt.plot([zoom_x_min, zoom_x_max], [zoom_y_max, zoom_y_max], color=box_color, linewidth=1, linestyle=linestyle)
+        plt.plot([zoom_x_min, zoom_x_min], [zoom_y_min, zoom_y_max], color=box_color, linewidth=1, linestyle=linestyle)
+        plt.plot([zoom_x_max, zoom_x_max], [zoom_y_min, zoom_y_max], color=box_color, linewidth=1, linestyle=linestyle)
 
     if plot_title is not None:
         plt.title(plot_title)
@@ -149,10 +185,11 @@ def make_plot(num_points: int,
 def main():
     num_points = 1000
     file_type = "pdf"
+    use_hatching = True
     full_area = (-1.5, 2.5, -2, 2)
     boxes = [
-        ("black", (1/10, 1/2, 1/2+1/10, 1-1/10+1/10)),
-        ("red", (0, 1/3, 0, 3/4)),
+        ("black", (1/10, 1/2, 1/2+1/10, 1-1/10+1/10), 'solid'),
+        ("black", (0, 1/3, 0, 3/4), 'dashed'),
     ]
 
     # curve 1: Sqrt[1 - 4 x + 2 x^2 + 4 x^3 - 3 x^4]/(2 x)
@@ -163,6 +200,17 @@ def main():
 
     # curve 2: -Sqrt[1 - 4 x + 2 x^2 + 4 x^3 - 3 x^4]/(2 x)
     x2, y2 = x1, -y1
+    
+    fig = make_plot(
+        num_points=num_points,
+        plot_range=full_area,
+        use_hatching=use_hatching,
+        include_shaded_region=False,
+        include_small_circle=False,
+        include_contours=True
+    )
+    fig.savefig(f'regions_simple.{file_type}', dpi=300)
+    plt.close(fig)
 
     fig = make_plot(
         num_points=num_points,
@@ -170,6 +218,7 @@ def main():
         boxes=boxes,
         curves=[(x1, y1), (x2, y2)],
         draw_legend=True,
+        use_hatching=use_hatching
     )
     fig.savefig(f'regions.{file_type}', dpi=300)
     plt.close(fig)
@@ -177,7 +226,7 @@ def main():
     x_inflection = 1/3 * (-5 - 44 * (2/(47 + 9 * np.sqrt(93)))**(1/3) + 2 * 2**(2/3) * (47 + 9 * np.sqrt(93))**(1/3))
     y_inflection = np.sqrt(1/4 - (x_inflection - 1/2)**2)
 
-    for i, (_, box_range) in enumerate(boxes):
+    for i, (_, box_range, _) in enumerate(boxes):
         fig = make_plot(
             num_points=num_points,
             plot_range=box_range,
@@ -186,7 +235,8 @@ def main():
             points=[
                 (0.275257, 0.689019),
                 (x_inflection, y_inflection),
-            ]
+            ],
+            use_hatching=use_hatching
         )
         fig.savefig(f'regions_box_{i}.{file_type}', dpi=300)
         plt.close(fig)
