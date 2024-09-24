@@ -1,15 +1,9 @@
 # Optimal Online Delivery with a Faulty Drone (Code)
 
-## Theorem 2.2
-- Notebook: [theorem_2_2.nb](./theorem_2_2.nb)
-- Figure 2.2: [figure_2_2.nb](./figure_2_2.nb)
+## Mathematica code used in Theorems 4 and 5
+- Notebook: [theorems.nb](./theorems.nb)
 
-## Theorem 2.3
-- Notebook: [theorem_2_3.nb](./theorem_2_3.nb)
-- Figure 2.3: [figure_2_3.nb](./figure_2_3.nb)
-
-### Theorem 2.3 Claim 1
-- Notebook: [theorem_2_3_claim_1.nb](./theorem_2_3_claim_1.nb)
-
-## Figure 3
-- Notebook: [figure_3.py](./figure_3.py)
+## Figures
+- Figure 2: [figure_2.nb](./figure_2.nb)
+- Figure 3: [figure_3.nb](./figure_3.nb)
+- Figure 4 (Python Code): [figure_4.py](./figure_4.py)
